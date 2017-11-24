@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+import argparse
+import sys
+
+# todo parser for biobox binning data format
+# todo implement taxonomic tree to resolve full lineage for above
 
 # sensitivity / specificity (can't do specificity without true negatives)
 # recall / precision
@@ -73,19 +78,39 @@ def calculate_f_score(recall, precision):
         return 0.0
 
 
+def setup_argument_parser():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-g', '--ground-truth', required=True, help='Path to the file containing the ground truth')
+    parser.add_argument('-t', '--tool-result', required=True, help='Path to the file containing the tool result')
+    parser.add_argument('-o', '--output', required=True, help='Path to the output file to write')
+    parser.add_argument('-r', '--ranks', type=parse_comma_sep_list, default=['genus', 'species', 'strain'],
+                        help='Comma seperated list of ranks to calculate stats on (Default: Genus,Species,Strain)')
+
+    return parser
+
+
+def parse_comma_sep_list(csl):
+    split = csl.split(',')
+    return [x.strip().lower() for x in split]
+
+
 def main():
-    ground_file = 'example_data/dudes_sim_low_S1.out'
-    tool_file = 'example_data/dudes_sim_low_S2.out'
+    parser = setup_argument_parser()
+    cli_args = parser.parse_args(sys.argv[1:])
 
-    ground_dict = parse_bioboxes_profiling_file(ground_file)
-    tool_dict = parse_bioboxes_profiling_file(tool_file)
+    ground_dict = parse_bioboxes_profiling_file(cli_args.ground_truth)
+    tool_dict = parse_bioboxes_profiling_file(cli_args.tool_result)
 
-    for rank in ['strain', 'species', 'genus', 'class', 'phylum', 'superkingdom']:
-        tp, fp, fn = compare_profiling_dictionaries(rank, ground_dict, tool_dict)
-        recall = calculate_recall(tp, fn)
-        precision = calculate_precision(tp, fp)
-        f_score = calculate_f_score(recall, precision)
-        print('Rank: {}, Recall: {}, Precision: {}, F-Score: {}'.format(rank, recall, precision, f_score))
+    with open(cli_args.output, 'w') as outfile:
+        outfile.write('RANK\tTP\tFP\tFN\tRECALL\tPRECISION\tF-SCORE\n')
+        for rank in cli_args.ranks:
+            tp, fp, fn = compare_profiling_dictionaries(rank, ground_dict, tool_dict)
+            recall = calculate_recall(tp, fn)
+            precision = calculate_precision(tp, fp)
+            f_score = calculate_f_score(recall, precision)
+            outfile.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
+                rank, tp, fp, fn, recall, precision, f_score))
 
 
 if __name__ == '__main__':

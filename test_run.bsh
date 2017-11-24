@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+./metrics.py -g example_data/dudes_sim_low_S1.out -t example_data/dudes_sim_low_S2.out -o test_output.tsv -r superkingdom,phylum,class,order,family,genus,species,strain
+
