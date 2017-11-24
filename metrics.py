@@ -36,8 +36,14 @@ def parse_bioboxes_profiling_file(input_file):
 
 
 def compare_profiling_dictionaries(rank, ground_truth_dict, tool_dict):
-    ground_truth_set = set(ground_truth_dict[rank].keys())
-    tool_set = set(tool_dict[rank].keys())
+    try:
+        ground_truth_set = set(ground_truth_dict[rank].keys())
+    except KeyError:
+        ground_truth_set = set()
+    try:
+        tool_set = set(tool_dict[rank].keys())
+    except KeyError:
+        tool_set = set()
 
     true_positives = ground_truth_set.union(tool_set)
     false_positves = tool_set.difference(ground_truth_set)
@@ -47,19 +53,39 @@ def compare_profiling_dictionaries(rank, ground_truth_dict, tool_dict):
 
 
 def calculate_recall(tp, fn):
-    return tp / (tp + fn)
+    try:
+        return tp / (tp + fn)
+    except ZeroDivisionError:
+        return 0.0
 
 
 def calculate_precision(tp, fp):
-    return tp / (tp + fp)
+    try:
+        return tp / (tp + fp)
+    except ZeroDivisionError:
+        return 0.0
 
 
 def calculate_f_score(recall, precision):
-    return 2 * (precision * recall) / (precision + recall)
+    try:
+        return 2 * (precision * recall) / (precision + recall)
+    except ZeroDivisionError:
+        return 0.0
 
 
 def main():
-    
+    ground_file = 'example_data/dudes_sim_low_S1.out'
+    tool_file = 'example_data/dudes_sim_low_S2.out'
+
+    ground_dict = parse_bioboxes_profiling_file(ground_file)
+    tool_dict = parse_bioboxes_profiling_file(tool_file)
+
+    for rank in ['strain', 'species', 'genus', 'class', 'phylum', 'superkingdom']:
+        tp, fp, fn = compare_profiling_dictionaries(rank, ground_dict, tool_dict)
+        recall = calculate_recall(tp, fn)
+        precision = calculate_precision(tp, fp)
+        f_score = calculate_f_score(recall, precision)
+        print('Rank: {}, Recall: {}, Precision: {}, F-Score: {}'.format(rank, recall, precision, f_score))
 
 
 if __name__ == '__main__':
